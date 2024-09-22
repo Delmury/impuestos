@@ -10,4 +10,4 @@ This project uses OCR (Optical Character Recognition) to extract information fro
 ## Deployment
 Deploy the function using:
 ```
-gcloud functions deploy process_tax_document --runtime python39 --trigger-resource generative-ai-436415-tax-documents --trigger-event google.storage.object.finalize --entry-point process_tax_document --source src
+gcloud functions deploy process_tax_document --runtime python39 --trigger-resource generative-ai-436415-tax-documents --trigger-event google.storage.object.finalize --entry-point process_tax_document --source src --region us
