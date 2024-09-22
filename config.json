@@ -1,0 +1,5 @@
+{
+  "tesseract_path": "/path/to/tesseract",
+  "default_image_path": "path/to/default/tax_document.jpg",
+  "output_format": "json"
+}
