@@ -1,15 +1,28 @@
-$content = @"
 import pytesseract
 from PIL import Image
 import re
 import json
+from google.cloud import storage
 
 def load_config():
-    with open('config.json', 'r') as config_file:
-        return json.load(config_file)
+    # In a cloud environment, you might want to use environment variables
+    # or secret management instead of a config file
+    import os
+    return {
+        "tesseract_path": os.environ.get("TESSERACT_PATH", "/usr/bin/tesseract"),
+        "output_format": os.environ.get("OUTPUT_FORMAT", "json")
+    }
+
+def download_blob(bucket_name, source_blob_name, destination_file_name):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(source_blob_name)
+    blob.download_to_filename(destination_file_name)
 
 def extract_text(image_path):
     try:
+        config = load_config()
+        pytesseract.pytesseract.tesseract_cmd = config['tesseract_path']
         image = Image.open(image_path)
         text = pytesseract.image_to_string(image)
         return text
@@ -30,16 +43,23 @@ def extract_tax_info(text):
         'income': income.group(1) if income else None
     }
 
-if __name__ == "__main__":
-    config = load_config()
-    image_path = "path/to/your/tax_document.jpg"
-    extracted_text = extract_text(image_path)
+def process_tax_document(request):
+    # This function would be your Cloud Function or Cloud Run entry point
+    if request.method != 'POST':
+        return 'Send a POST request', 405
+    
+    content = request.get_json()
+    bucket_name = content['bucket']
+    file_name = content['name']
+    
+    local_file_name = "/tmp/" + file_name.split('/')[-1]
+    download_blob(bucket_name, file_name, local_file_name)
+    
+    extracted_text = extract_text(local_file_name)
     if extracted_text:
         tax_info = extract_tax_info(extracted_text)
-        print("Extracted tax information:")
-        print(json.dumps(tax_info, indent=2))
+        return json.dumps(tax_info), 200
     else:
-        print("Text extraction failed.")
-"@
+        return "Text extraction failed.", 400
 
-Set-Content -Path src\ocr_app.py -Value $content
+# The __main__ block is not needed for Cloud Functions or Cloud Run
